@@ -7,8 +7,11 @@ import (
 	"context"
 	"flag"
 	"google.golang.org/grpc"
+	"io/ioutil"
 	"log"
 	"net"
+	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -18,7 +21,7 @@ func GetThumbnail(videoUrl string, wg *sync.WaitGroup, async bool) {
 	}
 
 	// Устанавливаем соединение с сервером
-	conn, err := grpc.Dial(":8080", grpc.WithInsecure())
+	conn, err := grpc.Dial(":9091", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -36,23 +39,53 @@ func GetThumbnail(videoUrl string, wg *sync.WaitGroup, async bool) {
 		return
 	}
 
-	// Выводим информацию о миниатюре и статусе кэширования
-	log.Printf("Thumbnail for %s downloaded, data length: %d bytes, cache status: %s\n",
-		videoUrl, len(res.ImageData), res.CacheStatus)
+	// Сохраняем изображение в файл
+	err = saveImageToFile(videoUrl, res.ImageData)
+	if err != nil {
+		log.Printf("Ошибка при сохранении изображения: %v", err)
+		return
+	}
+
+	log.Printf("Превью для %s загружено и сохранено, статус кэша: %s\n", videoUrl, res.CacheStatus)
+}
+
+func saveImageToFile(videoUrl string, imageData []byte) error {
+	// Извлекаем ID видео из URL для использования в качестве имени файла
+	videoID, err := thumbnail.ExtractVideoID(videoUrl)
+	if err != nil {
+		return err
+	}
+
+	// Определяем путь для сохранения файла
+	fileName := videoID + ".jpg"
+	filePath := filepath.Join("thumbnails", fileName)
+
+	// Создаем директорию, если она не существует
+	err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	// Записываем данные в файл
+	err = ioutil.WriteFile(filePath, imageData, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func main() {
 	// Инициализация базы данных
-	database := db.InitDB()
-	if database == nil {
-		log.Fatal("Database initialization failed")
-		return
+	database, err := db.InitDB()
+	if err != nil {
+		log.Fatalf("Database initialization failed: %v", err)
 	}
 	defer database.Close()
 
 	// Настройка сервера gRPC
 	go func() {
-		lis, err := net.Listen("tcp", ":8080")
+		lis, err := net.Listen("tcp", ":9091")
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
 		}

@@ -49,7 +49,7 @@ func (s *GRPCServer) DownloadThumbnail(ctx context.Context, req *api.ThumbnailRe
 	} else if err == sql.ErrNoRows {
 		// Если данных нет в кэше, получаем миниатюру
 		log.Printf("Cache miss for %s, fetching new thumbnail", req.VideoUrl)
-		videoID, err := extractVideoID(req.VideoUrl)
+		videoID, err := ExtractVideoID(req.VideoUrl)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid video URL: %v", err)
 		}
@@ -81,7 +81,7 @@ func (s *GRPCServer) DownloadThumbnail(ctx context.Context, req *api.ThumbnailRe
 }
 
 // Функция для извлечения ID видео из URL
-func extractVideoID(videoURL string) (string, error) {
+func ExtractVideoID(videoURL string) (string, error) {
 	// Простейший пример извлечения ID видео
 	if strings.Contains(videoURL, "v=") {
 		parts := strings.Split(videoURL, "v=")
