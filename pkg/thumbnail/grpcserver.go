@@ -53,7 +53,7 @@ func (s *GRPCServer) DownloadThumbnail(ctx context.Context, req *api.ThumbnailRe
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid video URL: %v", err)
 		}
-		thumbnailURL := "https://img.youtube.com/vi/" + videoID + "/default.jpg"
+		thumbnailURL := "https://img.youtube.com/vi/" + videoID + "/maxresdefault.jpg"
 
 		imageData, err = fetchImage(thumbnailURL)
 		if err != nil {
