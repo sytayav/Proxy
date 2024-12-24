@@ -1,22 +1,20 @@
 package thumbnail
 
 import (
-	api2 "Proxy/api"
+	"Proxy/api"
+	"Proxy/pkg/utils"
 	"context"
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3" // Обратите внимание на символ подчеркивания
+	_ "github.com/mattn/go-sqlite3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"strings"
 )
 
 // GRPCServer ...
 type GRPCServer struct {
-	api2.UnimplementedThumbnailServiceServer         // Встраиваем неинициализированный сервер
-	db                                       *sql.DB // Доступ к базе данных
+	api.UnimplementedThumbnailServiceServer         // Встраиваем неинициализированный сервер
+	db                                      *sql.DB // Доступ к базе данных
 }
 
 // NewGRPCServer создает новый экземпляр сервера с доступом к базе данных
@@ -30,7 +28,7 @@ func (s *GRPCServer) mustEmbedUnimplementedThumbnailServiceServer() {
 }
 
 // Метод DownloadThumbnail
-func (s *GRPCServer) DownloadThumbnail(ctx context.Context, req *api2.ThumbnailRequest) (*api2.ThumbnailResponse, error) {
+func (s *GRPCServer) DownloadThumbnail(ctx context.Context, req *api.ThumbnailRequest) (*api.ThumbnailResponse, error) {
 	log.Printf("Received request for video URL: %s", req.VideoUrl)
 
 	if req == nil || req.VideoUrl == "" {
@@ -40,7 +38,6 @@ func (s *GRPCServer) DownloadThumbnail(ctx context.Context, req *api2.ThumbnailR
 	// Проверяем кэш
 	var imageData []byte
 	var cacheStatus string
-
 	err := s.db.QueryRow("SELECT image_data, cache_status FROM thumbnails WHERE video_url = ?", req.VideoUrl).Scan(&imageData, &cacheStatus)
 
 	if err == nil {
@@ -49,13 +46,13 @@ func (s *GRPCServer) DownloadThumbnail(ctx context.Context, req *api2.ThumbnailR
 	} else if err == sql.ErrNoRows {
 		// Если данных нет в кэше, получаем миниатюру
 		log.Printf("Cache miss for %s, fetching new thumbnail", req.VideoUrl)
-		videoID, err := ExtractVideoID(req.VideoUrl)
+		videoID, err := utils.ExtractVideoID(req.VideoUrl)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid video URL: %v", err)
 		}
 		thumbnailURL := "https://img.youtube.com/vi/" + videoID + "/maxresdefault.jpg"
 
-		imageData, err = fetchImage(thumbnailURL)
+		imageData, err = utils.FetchImage(thumbnailURL)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to fetch thumbnail: %v", err)
 		}
@@ -72,46 +69,10 @@ func (s *GRPCServer) DownloadThumbnail(ctx context.Context, req *api2.ThumbnailR
 	}
 
 	// Возвращаем данные
-	res := &api2.ThumbnailResponse{
+	res := &api.ThumbnailResponse{
 		ImageData:   imageData,
 		VideoUrl:    req.VideoUrl,
 		CacheStatus: cacheStatus,
 	}
 	return res, nil
-}
-
-// Функция для извлечения ID видео из URL
-func ExtractVideoID(videoURL string) (string, error) {
-	// Простейший пример извлечения ID видео
-	if strings.Contains(videoURL, "v=") {
-		parts := strings.Split(videoURL, "v=")
-		if len(parts) > 1 {
-			if strings.Contains(parts[1], "&") {
-				return strings.Split(parts[1], "&")[0], nil
-			}
-			return parts[1], nil
-		}
-	}
-	if strings.Contains(videoURL, "youtu.be/") {
-		parts := strings.Split(videoURL, "youtu.be/")
-		if len(parts) > 1 {
-			return parts[1], nil
-		}
-	}
-	return "", status.Errorf(codes.InvalidArgument, "unable to extract video ID")
-}
-
-// Функция для получения изображения по URL
-func fetchImage(url string) ([]byte, error) {
-	response, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		return nil, status.Errorf(codes.Internal, "failed to fetch image, status: %s", response.Status)
-	}
-
-	return ioutil.ReadAll(response.Body)
 }

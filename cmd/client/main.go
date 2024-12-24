@@ -4,21 +4,19 @@ import (
 	"Proxy/api"
 	"Proxy/internal/db"
 	"Proxy/internal/thumbnail"
+	"Proxy/pkg/utils"
 	"context"
 	"database/sql"
 	"flag"
 	_ "github.com/mattn/go-sqlite3"
 	"google.golang.org/grpc"
-	"io/ioutil"
 	"log"
 	"net"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 )
 
-func GetThumbnail(videoUrl string, wg *sync.WaitGroup, async bool, database *sql.DB) {
+func GetThumbnail(videoUrl string, wg *sync.WaitGroup, database *sql.DB) {
 	if wg != nil {
 		defer wg.Done() // Уменьшаем счётчик ожидания по завершении работы функции
 	}
@@ -46,13 +44,8 @@ func GetThumbnail(videoUrl string, wg *sync.WaitGroup, async bool, database *sql
 		return
 	}
 
-	if res == nil {
-		log.Printf("No thumbnail found for %s", videoUrl)
-		return
-	}
-
 	// Сохраняем изображение в файл
-	err = saveImageToFile(videoUrl, res.ImageData)
+	err = utils.SaveImageToFile(videoUrl, res.ImageData)
 	if err != nil {
 		log.Printf("Ошибка при сохранении изображения: %v", err)
 		return
@@ -61,32 +54,6 @@ func GetThumbnail(videoUrl string, wg *sync.WaitGroup, async bool, database *sql
 	log.Printf("Превью для %s загружено и сохранено, статус кэша: %s\n", videoUrl, res.CacheStatus)
 
 	db.ChangeStatus(res, &videoUrl, database)
-}
-
-func saveImageToFile(videoUrl string, imageData []byte) error {
-	// Извлекаем ID видео из URL для использования в качестве имени файла
-	videoID, err := thumbnail.ExtractVideoID(videoUrl)
-	if err != nil {
-		return err
-	}
-
-	// Определяем путь для сохранения файла
-	fileName := videoID + ".jpg"
-	filePath := filepath.Join("thumbnails", fileName)
-
-	// Создаем директорию, если она не существует
-	err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	// Записываем данные в файл
-	err = ioutil.WriteFile(filePath, imageData, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func main() {
@@ -120,13 +87,13 @@ func main() {
 	if *asyncFlag {
 		var wg sync.WaitGroup // Создаём WaitGroup для отслеживания завершения горутин
 		for _, videoUrl := range videoUrls {
-			wg.Add(1)                                            // Увеличиваем счётчик
-			go GetThumbnail(videoUrl, &wg, *asyncFlag, database) // Запускаем загрузку в горутине
+			wg.Add(1)                                // Увеличиваем счётчик
+			go GetThumbnail(videoUrl, &wg, database) // Запускаем загрузку в горутине
 		}
 		wg.Wait() // Ожидаем завершения всех загрузок
 	} else {
 		for _, videoUrl := range videoUrls {
-			GetThumbnail(videoUrl, nil, *asyncFlag, database) // Синхронная загрузка
+			GetThumbnail(videoUrl, nil, database) // Синхронная загрузка
 		}
 	}
 }
