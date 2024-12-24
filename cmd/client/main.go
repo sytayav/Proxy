@@ -26,7 +26,7 @@ func GetThumbnail(videoUrl string, wg *sync.WaitGroup, database *sql.DB) {
 	defer cancel()
 
 	// Устанавливаем соединение с сервером
-	conn, err := grpc.DialContext(ctx, ":9092", grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, ":9094", grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -66,7 +66,7 @@ func main() {
 
 	// Настройка сервера gRPC
 	go func() {
-		lis, err := net.Listen("tcp", ":8084")
+		lis, err := net.Listen("tcp", ":9094")
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
 		}
