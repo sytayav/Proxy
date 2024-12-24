@@ -1,8 +1,8 @@
 package main
 
 import (
-	"Proxy/pkg/api"
-	"Proxy/pkg/thumbnail"
+	"Proxy/api"
+	"Proxy/internal/thumbnail"
 	"context"
 	"google.golang.org/grpc"
 	"log"

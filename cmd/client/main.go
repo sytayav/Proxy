@@ -1,9 +1,9 @@
 package main
 
 import (
+	"Proxy/api"
 	"Proxy/internal/db"
-	"Proxy/pkg/api"
-	"Proxy/pkg/thumbnail"
+	"Proxy/internal/thumbnail"
 	"context"
 	"database/sql"
 	"flag"
@@ -23,8 +23,12 @@ func GetThumbnail(videoUrl string, wg *sync.WaitGroup, async bool, database *sql
 		defer wg.Done() // Уменьшаем счётчик ожидания по завершении работы функции
 	}
 
+	// Создаем контекст с таймаутом
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	// Устанавливаем соединение с сервером
-	conn, err := grpc.Dial(":8084", grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, ":9092", grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -32,11 +36,11 @@ func GetThumbnail(videoUrl string, wg *sync.WaitGroup, async bool, database *sql
 
 	c := api.NewThumbnailServiceClient(conn)
 
-	// Создаем контекст с таймаутом
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	// Создаем контекст с таймаутом для RPC-вызова
+	rpcCtx, rpcCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer rpcCancel()
 
-	res, err := c.DownloadThumbnail(ctx, &api.ThumbnailRequest{VideoUrl: videoUrl})
+	res, err := c.DownloadThumbnail(rpcCtx, &api.ThumbnailRequest{VideoUrl: videoUrl})
 	if err != nil {
 		log.Fatalf("could not download thumbnail: %v", err)
 		return
