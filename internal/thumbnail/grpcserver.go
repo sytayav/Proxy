@@ -5,10 +5,12 @@ import (
 	"Proxy/pkg/utils"
 	"context"
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log"
+
+	// Importing SQLite3 driver for database interaction
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // GRPCServer ...

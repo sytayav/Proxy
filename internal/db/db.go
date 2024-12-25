@@ -4,6 +4,8 @@ import (
 	"Proxy/api"
 	"database/sql"
 	"fmt"
+
+	// Importing SQLite3 driver for database interaction
 	_ "github.com/mattn/go-sqlite3"
 )
 

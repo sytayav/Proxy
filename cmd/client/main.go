@@ -6,11 +6,13 @@ import (
 	"Proxy/internal/thumbnail"
 	"Proxy/pkg/utils"
 	"flag"
-	_ "github.com/mattn/go-sqlite3"
 	"google.golang.org/grpc"
 	"log"
 	"net"
 	"sync"
+
+	// Importing SQLite3 driver for database interaction
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
