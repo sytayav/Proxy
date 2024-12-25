@@ -29,7 +29,7 @@ func GetThumbnail(videoUrl string, wg *sync.WaitGroup, database *sql.DB) error {
 	defer cancel()
 
 	// Устанавливаем соединение с сервером
-	conn, err := grpc.DialContext(ctx, ":8080", grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, ":8081", grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		return fmt.Errorf("did not connect: %v", err)
 	}
@@ -38,13 +38,12 @@ func GetThumbnail(videoUrl string, wg *sync.WaitGroup, database *sql.DB) error {
 	c := api.NewThumbnailServiceClient(conn)
 
 	// Создаем контекст с таймаутом для RPC-вызова
-	rpcCtx, rpcCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	rpcCtx, rpcCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer rpcCancel()
 
 	res, err := c.DownloadThumbnail(rpcCtx, &api.ThumbnailRequest{VideoUrl: videoUrl})
 	if err != nil {
 		return fmt.Errorf("could not download thumbnail: %v", err)
-
 	}
 
 	// Сохраняем изображение в файл

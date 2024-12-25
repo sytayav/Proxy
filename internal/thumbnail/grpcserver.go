@@ -31,7 +31,7 @@ func (s *GRPCServer) mustEmbedUnimplementedThumbnailServiceServer() {
 
 // Метод DownloadThumbnail
 func (s *GRPCServer) DownloadThumbnail(ctx context.Context, req *api.ThumbnailRequest) (*api.ThumbnailResponse, error) {
-	log.Printf("Received request for video URL: %s", req.VideoUrl)
+	log.Printf("Получен запрос на превью для %s", req.VideoUrl)
 
 	if req == nil || req.VideoUrl == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "request or video URL is nil")
@@ -44,10 +44,10 @@ func (s *GRPCServer) DownloadThumbnail(ctx context.Context, req *api.ThumbnailRe
 
 	if err == nil {
 		// Если данные найдены в кэше
-		log.Printf("Cache hit for %s", req.VideoUrl)
+		log.Printf("Существует кэш для %s", req.VideoUrl)
 	} else if err == sql.ErrNoRows {
 		// Если данных нет в кэше, получаем миниатюру
-		log.Printf("Cache miss for %s, fetching new thumbnail", req.VideoUrl)
+		log.Printf("Не существует кэша для %s, получение нового превью", req.VideoUrl)
 		videoID, err := utils.ExtractVideoID(req.VideoUrl)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid video URL: %v", err)
