@@ -29,7 +29,7 @@ func GetThumbnail(videoUrl string, wg *sync.WaitGroup, database *sql.DB) error {
 	defer cancel()
 
 	// Устанавливаем соединение с сервером
-	conn, err := grpc.DialContext(ctx, ":8081", grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, ":9098", grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		return fmt.Errorf("did not connect: %v", err)
 	}
